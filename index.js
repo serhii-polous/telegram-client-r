@@ -8,31 +8,54 @@ const apiId = config.apiId;
 const apiHash = config.apiHash;
 const storeSession = new StoreSession('telegram_session');
 
-(async () => {
-  console.log('Loading interactive example...');
-  const client = new TelegramClient(storeSession, apiId, apiHash, {
-    connectionRetries: 5
-  });
-  await client.start({
-    phoneNumber: async () => await input.text('Please enter your number: '),
-    password: async () => await input.text('Please enter your password: '),
-    phoneCode: async () => await input.text('Please enter the code you received: '),
-    onError: (err) => console.log(err)
-  });
-  console.log('You should now be connected.');
+const checkMessage = (message) => {
+  if (!message || typeof message !== 'string') {
+    return false;
+  }
 
-  client.addEventHandler(async (update) => {
-    if (update.className === 'UpdateShortChatMessage' && update.chatId.value === 4019732237n) {
-      console.log('Received new Update');
-      console.log(update);
-      console.log(update.id);
-      console.log('update.id');
+  const lowerCasedMessage = message.toLowerCase();
 
-      await client.sendMessage(new Api.InputPeerChat({chatId: 4019732237n}), {
-        message: 'Hello there!',
-        replyTo: update.id
-      });
+  for (let key of config.keys) {
+    if (lowerCasedMessage.includes(key)) {
+      return true;
     }
-  });
+  }
 
-})();
+  return false;
+};
+
+const client = new TelegramClient(storeSession, apiId, apiHash, {
+  connectionRetries: 5
+});
+
+await client.start({
+  phoneNumber: async () => await input.text('Please enter your number: '),
+  password: async () => await input.text('Please enter your password: '),
+  phoneCode: async () => await input.text('Please enter the code you received: '),
+  onError: (err) => console.log(err)
+});
+
+console.log('You should now be connected.');
+
+client.addEventHandler(async (update) => {
+  // if (update.className === 'UpdateShortChatMessage') {
+  //   console.log('------------')
+  //   console.log(update.message)
+  //   console.log(update.chatId)
+  //   console.log('------------')
+  // }
+
+  if (update.className === 'UpdateShortChatMessage' && checkMessage(update.message)) {
+    await client.forwardMessages(new Api.InputPeerChat({chatId: config.chatId}), {
+      messages: [update.id],
+      fromPeer: new Api.InputPeerChat({chatId: update.chatId})
+    });
+  }
+
+  if (update.className === 'UpdateNewChannelMessage' && checkMessage(update.message.message)) {
+    await client.forwardMessages(new Api.InputPeerChat({chatId: config.chatId}), {
+      messages: [update.message.id],
+      fromPeer: update.message.peerId
+    });
+  }
+});

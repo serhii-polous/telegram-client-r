@@ -1,4 +1,9 @@
 export default {
   apiId: 0,
-  apiHash: 'hash'
+  apiHash: 'hash',
+  chatId: 0,
+  keys: [
+    'key',
+    'key2'
+  ]
 };
