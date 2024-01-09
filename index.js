@@ -57,5 +57,8 @@ client.addEventHandler(async (update) => {
       messages: [update.message.id],
       fromPeer: update.message.peerId
     });
+    await client.sendMessage(new Api.InputPeerChat({chatId: config.chatId}), {
+      message: `https://t.me/c/${ update.message.peerId.channelId }/${ update.message.id }`
+    });
   }
 });
